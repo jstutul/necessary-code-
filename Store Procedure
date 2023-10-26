@@ -4,3 +4,19 @@ FROM sys.objects
 WHERE type = 'P'
 ORDER BY modify_date DESC
 ##-----------------------------------------------
+
+### Transaction Use In SP
+
+BEGIN
+  	--DECLARE goes here
+    BEGIN TRANSACTION
+    --code goes here
+    COMMIT TRANSACTION
+    
+    IF @@ERROR <> 0 
+    BEGIN
+    	RAISERROR ('Error',16,1)
+    	ROLLBACK TRANSACTION
+    END		
+END
+##---------------------------------------------
