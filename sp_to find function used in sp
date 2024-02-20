@@ -1,0 +1,13 @@
+USE [LandERP_PHL]
+GO
+SELECT DISTINCT
+    s.name + '.' + o.name AS Object_Name,
+    o.type_desc
+FROM
+    sys.sql_modules m
+    INNER JOIN sys.objects o ON m.object_id = o.object_id
+    INNER JOIN sys.schemas s ON o.schema_id = s.schema_id
+WHERE
+    m.definition LIKE '%UFN_CLIENT_STATUS%'
+    AND o.type = 'P'; -- Filter for stored procedures only
+	
