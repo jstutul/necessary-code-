@@ -1,0 +1,26 @@
+SELECT DISTINCT SD.OrganizationId,SD.ProjectId,SD.FileNo
+into #TEMP_db
+FROM SaleDetails SD
+LEFT JOIN
+(
+	SELECT DISTINCT S.OrganizationId,S.ProjectId,S.FileNo
+	FROM SaleDetails S
+		INNER JOIN [Collection] C ON  C.FileNo=S.FileNo AND C.OrganizationId=S.OrganizationId AND C.ProjectId=S.ProjectId
+		INNER JOIN ModeOfPayment MP ON MP.Id=C.ModeOfPaymentId AND MP.IsActive=1
+	WHERE MP.PaymentGroup<>1
+) TR ON TR.FileNo=SD.FileNo AND TR.OrganizationId=SD.OrganizationId AND TR.ProjectId=SD.ProjectId
+LEFT JOIN
+(
+	SELECT DISTINCT S.OrganizationId,S.ProjectId,S.FileNo
+	FROM SaleDetails S
+		INNER JOIN [Collection] C ON  C.FileNo=S.FileNo AND C.OrganizationId=S.OrganizationId AND C.ProjectId=S.ProjectId
+		INNER JOIN ModeOfPayment MP ON MP.Id=C.ModeOfPaymentId AND MP.IsActive=1
+	WHERE MP.PaymentGroup=1
+) T ON T.FileNo=SD.FileNo AND T.OrganizationId=SD.OrganizationId AND T.ProjectId=SD.ProjectId
+WHERE TR.FileNo IS NULL AND SD.FileStatus=3
+AND T.FileNo IS NOT NULL
+
+
+
+select * from #TEMP_db
+drop TABLE #TEMP_db
