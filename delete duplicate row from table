@@ -1,0 +1,14 @@
+delete from UserWiseModule
+where Id in
+(
+select t.Id
+from
+(
+SELECT UM.*,ROW_NUMBER() over(partition by um.userid,um.moduleid order by um.userid,um.moduleid) sl
+FROM UserWiseModule UM
+
+--order by um.UserId,um.ModuleId
+) t
+where t.sl>1
+)
+
