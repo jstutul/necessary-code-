@@ -27,3 +27,19 @@ select schema_name(schema_id) as schema_name,
 from sys.tables
 where create_date > DATEADD(DAY, -30, CURRENT_TIMESTAMP)
 order by create_date desc;
+
+
+
+
+    SELECT 
+        C.[File no], 
+        ROW_NUMBER() OVER (ORDER BY (SELECT 1)) AS RowNum
+		INTO #TEMP_T
+    FROM abc C
+
+	SELECT S.Block,S.Sector
+	FROM #TEMP_T C
+	lEFT JOIN SaleDetails S ON S.FileNo=C.[File No]
+	ORDER BY C.RowNum
+
+	DROP TABLE #TEMP_T
