@@ -1,0 +1,9 @@
+// Need to install 
+Microsoft.AspNet.Identity.EntityFramework
+Microsoft.AspNet.Identity.Owin
+Microsoft.Owin.Host.SystemWeb 
+
+/// Need to install for crystal report
+CrystalDecisions.CrystalReports.Engine
+using CrystalDecisions.Shared;
+CrystalDecisions.ReportSource
