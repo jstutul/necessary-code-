@@ -1,0 +1,5 @@
+        if (performance.navigation.type === performance.navigation.TYPE_RELOAD) {
+            resendOtp();
+        } else {
+            console.log("Page 1");
+        }
