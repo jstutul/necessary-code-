@@ -43,3 +43,17 @@ order by create_date desc;
 	ORDER BY C.RowNum
 
 	DROP TABLE #TEMP_T
+
+
+-- Step 3: Test Data migration
+OPEN SYMMETRIC KEY ERP_SYMMETRIC_KEY 
+DECRYPTION BY CERTIFICATE ERP_CERTIFICATE
+SELECT U.UserName
+,U.Hashing 
+,CAST(DecryptByKey(U.Hashing) AS VARCHAR(MAX)) DecryptHashing
+,U.Hashing
+FROM AspNetUsers U 
+where U.Hashing<>CAST(DecryptByKey(U.Hashing) AS VARCHAR(MAX)) AND U.UserName='mahiuddin@ucasbd.com'
+ORDER BY U.UserName
+GO
+
