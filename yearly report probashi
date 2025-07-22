@@ -1,0 +1,46 @@
+SELECT 
+    ROW_NUMBER() OVER (ORDER BY p.ProjectName, s.FileNo) AS Sl,
+    p.ProjectName,
+    S.FileNo,
+    CI.ClientName,
+    MOS.ModeOfSaleName,
+    CS.StatusName,
+    -- Monthly sums
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'Jul-24' THEN c.CollectionAmount END), 0) AS [Jul-24],
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'Aug-24' THEN c.CollectionAmount END), 0) AS [Aug-24],
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'Sep-24' THEN c.CollectionAmount END), 0) AS [Sep-24],
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'Oct-24' THEN c.CollectionAmount END), 0) AS [Oct-24],
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'Nov-24' THEN c.CollectionAmount END), 0) AS [Nov-24],
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'Dec-24' THEN c.CollectionAmount END), 0) AS [Dec-24],
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'Jan-25' THEN c.CollectionAmount END), 0) AS [Jan-25],
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'Feb-25' THEN c.CollectionAmount END), 0) AS [Feb-25],
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'Mar-25' THEN c.CollectionAmount END), 0) AS [Mar-25],
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'Apr-25' THEN c.CollectionAmount END), 0) AS [Apr-25],
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'May-25' THEN c.CollectionAmount END), 0) AS [May-25],
+    ISNULL(SUM(CASE WHEN FORMAT(c.CollectionDate, 'MMM-yy') = 'Jun-25' THEN c.CollectionAmount END), 0) AS [Jun-25],
+    ISNULL(SUM(c.CollectionAmount), 0) AS Total
+	INTO #TEMP_DATA
+FROM Collection c
+INNER JOIN SaleDetails S ON S.Id = C.SaleId
+INNER JOIN ClientInformation CI ON CI.Id=S.ClientId
+INNER JOIN ProjectInformation P ON P.Id = C.ProjectId
+INNER JOIN ModeOfSale MOS ON MOS.Id=S.ModeOfSaleId
+INNER JOIN ClientStatus CS ON CS.Id=S.FileStatus
+WHERE c.CollectionDate BETWEEN '2024-07-01' AND '2025-06-30' AND C.IsActive=1
+GROUP BY 
+     p.ProjectName,
+    S.FileNo,
+    CI.ClientName,
+    MOS.ModeOfSaleName,
+    CS.StatusName
+
+ORDER BY p.ProjectName, s.FileNo
+
+
+SELECT D.*,
+	CASE WHEN FC.Id IS NOT NULL THEN 'Cancel' Else 'Regular' END 
+FROM #TEMP_DATA D
+LEFT JOIN FileCancel FC ON FC.FileNo=D.FileNo 
+
+
+DROP TABLE #TEMP_DATA
