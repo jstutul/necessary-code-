@@ -1,0 +1,7 @@
+UPDATE P SET P.ProductStatusId=2
+FROM ProductInformation P
+INNER JOIN Road R ON R.Id=P.RoadId
+INNER JOIN Sector S ON S.Id=R.SectorId
+INNER JOIN Block B ON B.Id=S.BlockId
+WHERE P.SaleId IS NOT NULL AND P.ProductStatusId =3
+AND P.IsActive=1 
