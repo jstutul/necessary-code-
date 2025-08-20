@@ -1,0 +1,33 @@
+--41
+
+
+SELECT FORMAT(S.BookingDate,'dd/MM/yyyy') BookingDate,P.ProjectName,C.ClientName,CN.CountryName PresentCountry,MOS.ModeOfSaleName,S.TotalSize,S.SalePrice,S.TotalCollection
+,ST.DueMonth,ST.DueAmount,CS.StatusName
+FROM SaleDetails S 
+INNER JOIN ClientInformation C ON C.Id=S.ClientId AND C.organizationId=S.OrganizationId AND C.ProjectId=S.ProjectId
+INNER JOIN ProjectInformation P ON P.Id=S.ProjectId
+INNER JOIN Country CN ON CN.Id=C.PresentCountryId
+INNER JOIN ModeOfSale MOS ON MOS.Id=S.ModeOfSaleId
+INNER JOIN ( 
+	
+
+SELECT COUNT(CASE WHEN IM.InstallmentAmount-ISNULL(COLC.CollectionAmount,0)>0 THEN 1 ELSE NULL END) DueMonth,
+IM.SaleId,SUM((IM.InstallmentAmount - ISNULL(IM.CollectedAmount,0))) DueAmount
+			FROM Installment IM
+				INNER JOIN ModeOfPayment MOP on MOP.Id=IM.ModeOfPaymentId
+				LEFT JOIN (
+					SELECT CL.OrganizationId,CL.ProjectId,CL.FileNo,CL.ModeOfPaymentId,SUM(CL.CollectionAmount) CollectionAmount,CL.InstallmentId
+					FROM [Collection] CL
+						INNER JOIN CollectionMoneyReceipt MR ON MR.MoneyReceiptNo=CL.MoneyReceiptNo AND MR.OrganizationId=CL.OrganizationId AND MR.ProjectId=CL.ProjectId AND MR.FileNo=CL.FileNo AND MR.IsActive=1
+						LEFT JOIN ChequeDetails CD ON CD.OrganizationId=CL.OrganizationId AND CD.ProjectId=CL.ProjectId AND CD.FileNo=CL.FileNo AND CD.MoneyReceiptNo=CL.MoneyReceiptNo AND CD.IsActive=1
+						LEFT JOIN ChequeStatus CS ON CS.Id=CD.ChequeStatusId
+					WHERE ISNULL(CS.ChequeStatusName,'') NOT IN('Cancel','Dishonored')
+					GROUP BY CL.OrganizationId,CL.ProjectId,CL.FileNo,CL.ModeOfPaymentId,CL.InstallmentId
+				) COLC ON COLC.OrganizationId=IM.OrganizationId AND COLC.ProjectId=IM.ProjectId AND COLC.FileNo=IM.FIleNo AND COLC.ModeOfPaymentId=IM.ModeOfPaymentId AND COLC.InstallmentId=IM.Id
+			WHERE  CONVERT(DATE,IM.InstallmentDate,106) <= CONVERT(DATE,GETDATE(),106)
+			GROUP BY IM.SaleId
+
+) ST ON ST.SaleId=S.Id
+INNER JOIN ClientStatus CS ON CS.Id=S.FileStatus
+WHERE CN.Id=41
+
