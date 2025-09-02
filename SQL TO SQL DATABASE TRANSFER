@@ -1,0 +1,138 @@
+import pyodbc
+
+# ----------------------
+# Database Connections
+# ----------------------
+# Source (SQL Server 2016)
+source_conn = pyodbc.connect(
+    "DRIVER={ODBC Driver 17 for SQL Server};"
+    "SERVER=15.207.79.118,34875;"
+    "DATABASE=SAR_Website;"
+    "UID=sa;PWD=Ucas@123@aws"
+)
+
+# Target (SQL Server 2015)
+target_conn = pyodbc.connect(
+    "DRIVER={ODBC Driver 17 for SQL Server};"
+    "SERVER=15.207.79.118,9228;"
+    "DATABASE=SAR_Website;"
+    "UID=sa;PWD=Ucas@123@aws"
+)
+
+src_cursor = source_conn.cursor()
+tgt_cursor = target_conn.cursor()
+
+# ----------------------
+# 1. Copy Tables Schema
+# ----------------------
+print("Extracting tables...")
+src_cursor.execute("""
+    SELECT TABLE_SCHEMA, TABLE_NAME 
+    FROM INFORMATION_SCHEMA.TABLES 
+    WHERE TABLE_TYPE = 'BASE TABLE'
+""")
+tables = src_cursor.fetchall()
+
+for schema, table in tables:
+    print(f"Processing table: {schema}.{table}")
+
+    # Get column definitions from INFORMATION_SCHEMA
+    src_cursor.execute(f"""
+        SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, IS_NULLABLE
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = '{schema}' AND TABLE_NAME = '{table}'
+        ORDER BY ORDINAL_POSITION
+    """)
+    columns = src_cursor.fetchall()
+
+    # Build CREATE TABLE script
+    col_defs = []
+    for col_name, data_type, char_len, is_nullable in columns:
+        if char_len and data_type in ("nvarchar", "varchar", "char"):
+            col_type = f"{data_type}({char_len if char_len > 0 else 'MAX'})"
+        elif data_type in ("decimal", "numeric"):
+            # fetch precision and scale
+            src_cursor.execute(f"""
+                SELECT NUMERIC_PRECISION, NUMERIC_SCALE
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = '{schema}' AND TABLE_NAME = '{table}' AND COLUMN_NAME = '{col_name}'
+            """)
+            prec, scale = src_cursor.fetchone()
+            col_type = f"{data_type}({prec},{scale})"
+        else:
+            col_type = data_type
+
+        nullable = "NULL" if is_nullable == "YES" else "NOT NULL"
+        col_defs.append(f"[{col_name}] {col_type} {nullable}")
+
+    create_sql = f"CREATE TABLE {schema}.{table} (\n    " + ",\n    ".join(col_defs) + "\n);"
+
+    try:
+        tgt_cursor.execute(create_sql)
+        target_conn.commit()
+        print(f"Created table: {schema}.{table}")
+    except Exception as e:
+        print(f"Skipping {schema}.{table} (maybe exists): {e}")
+
+# ----------------------
+# 2. Copy Views
+# ----------------------
+print("Extracting views...")
+src_cursor.execute("""
+    SELECT name, definition 
+    FROM sys.sql_modules m
+    JOIN sys.views v ON m.object_id = v.object_id
+""")
+for name, definition in src_cursor.fetchall():
+    try:
+        tgt_cursor.execute(definition)
+        target_conn.commit()
+        print(f"Created view: {name}")
+    except Exception as e:
+        print(f"Skipping view {name}: {e}")
+
+# ----------------------
+# 3. Copy Stored Procedures & Functions
+# ----------------------
+print("Extracting procedures & functions...")
+src_cursor.execute("""
+    SELECT o.name, m.definition
+    FROM sys.sql_modules m
+    JOIN sys.objects o ON m.object_id = o.object_id
+    WHERE type IN ('P','FN','IF','TF')  -- P=Proc, FN=Scalar fn, IF=Inline fn, TF=Table fn
+""")
+for name, definition in src_cursor.fetchall():
+    try:
+        tgt_cursor.execute(definition)
+        target_conn.commit()
+        print(f"Created proc/function: {name}")
+    except Exception as e:
+        print(f"Skipping {name}: {e}")
+
+# ----------------------
+# 4. Transfer Data
+# ----------------------
+print("Transferring data...")
+for schema, table in tables:
+    try:
+        src_cursor.execute(f"SELECT * FROM {schema}.{table}")
+        rows = src_cursor.fetchall()
+        if not rows:
+            continue
+
+        placeholders = ", ".join(["?"] * len(rows[0]))
+        insert_sql = f"INSERT INTO {schema}.{table} VALUES ({placeholders})"
+
+        tgt_cursor.fast_executemany = True  # faster inserts
+        tgt_cursor.executemany(insert_sql, rows)
+        target_conn.commit()
+        print(f"Data copied for {schema}.{table}")
+    except Exception as e:
+        print(f"Skipping data for {schema}.{table}: {e}")
+
+print("✅ Database copy completed!")
+
+src_cursor.close()
+tgt_cursor.close()
+source_conn.close()
+target_conn.close()
