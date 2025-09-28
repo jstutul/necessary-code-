@@ -1,0 +1,38 @@
+-- Database: LandERP_PremiumHolding_NEW
+
+-- 1. Check if the database is in suspect mode
+SELECT name, state_desc 
+FROM sys.databases 
+WHERE name = 'LandERP_PremiumHolding_NEW';
+
+-- 2. Set database to EMERGENCY mode (read-only, sysadmin only)
+PRINT 'Setting database to EMERGENCY mode...';
+ALTER DATABASE [LandERP_PremiumHolding_NEW] SET EMERGENCY;
+
+-- 3. Run DBCC CHECKDB to check for corruption
+PRINT 'Running DBCC CHECKDB...';
+DBCC CHECKDB([LandERP_PremiumHolding_NEW]);
+
+-- 4. Set SINGLE_USER mode to perform repairs
+PRINT 'Setting database to SINGLE_USER mode...';
+ALTER DATABASE [LandERP_PremiumHolding_NEW] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+
+-- 5. Attempt to repair with data loss (last resort)
+-- WARNING: This can cause data loss if corruption is severe
+PRINT 'Attempting REPAIR_ALLOW_DATA_LOSS...';
+DBCC CHECKDB([LandERP_PremiumHolding_NEW], REPAIR_ALLOW_DATA_LOSS);
+
+-- 6. Set database back to MULTI_USER mode
+PRINT 'Setting database back to MULTI_USER mode...';
+ALTER DATABASE [LandERP_PremiumHolding_NEW] SET MULTI_USER;
+
+-- 7. Try bringing the database back online
+PRINT 'Bringing database ONLINE...';
+ALTER DATABASE [LandERP_PremiumHolding_NEW] SET ONLINE;
+
+-- 8. Confirm database status
+SELECT name, state_desc 
+FROM sys.databases 
+WHERE name = 'LandERP_PremiumHolding_NEW';
+
+PRINT 'Process completed. Please backup your database immediately if successful.';
