@@ -1,0 +1,41 @@
+Steps to Remove TypeScript
+
+Rename config files
+
+vite.config.ts → vite.config.js
+
+capacitor.config.ts → capacitor.config.js
+
+cypress.config.ts (if you use Cypress tests) → cypress.config.js
+
+Example vite.config.js:
+
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+
+export default defineConfig({
+  plugins: [vue()],
+});
+
+
+Example capacitor.config.js:
+
+const config = {
+  appId: 'com.todoapp.example',
+  appName: 'TODOAPP',
+  webDir: 'dist',
+  bundledWebRuntime: false
+};
+
+export default config;
+
+
+Remove TypeScript configs
+
+Delete tsconfig.json and tsconfig.node.json
+
+Delete *.d.ts files if present (like env.d.ts)
+
+Uninstall TypeScript packages
+
+npm uninstall typescript @types/node
