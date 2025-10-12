@@ -1,0 +1,6 @@
+# Project Create 
+ionic start myApp blank --type vue
+# Run ionic serve within the app directory to see your app in the browser
+ionic serve
+#To add a native iOS or Android project using Capacitor
+ionic capacitor add
