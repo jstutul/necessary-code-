@@ -4,3 +4,6 @@ ionic start myApp blank --type vue
 ionic serve
 #To add a native iOS or Android project using Capacitor
 ionic capacitor add
+ionic build
+ionic cap add ios
+ionic cap add android
