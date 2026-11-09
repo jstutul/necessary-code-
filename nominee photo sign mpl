@@ -1,0 +1,47 @@
+Jafor15-9228Js--SELECT * FROM NOM_SIGN
+
+
+--SELECT * 
+--FROM NOM_TEMP T
+--INNER JOIN InvestorDetails D ON D.InvestorCode=T.InvestorCode
+
+SELECT
+    D.InvestorCode,
+    IA.BOID,
+    N.Id AS NomineeId,
+    ROW_NUMBER() OVER (
+        PARTITION BY D.InvestorCode
+        ORDER BY N.Id
+    ) AS SL
+
+    INTO #TEMP_NMP
+FROM InvestorNominee N
+INNER JOIN InvestorDetails D ON D.Id = N.InvestorId
+INNER JOIN InvestorAccount IA ON IA.InvestorId=D.Id
+WHERE N.SignaturePath IS NULL
+ORDER BY  N.Id
+-- DROP TABLE #TEMP_NMP
+UPDATE N SET N.PhotographPath=Tn.PhotoPath
+--SELECT N.PhotographPath,TN.InvestorCode,TN.PhotoPath,TN.NomineeId
+FROM InvestorNominee N
+INNER JOIN (
+SELECT D.InvestorCode,ISNULL(NP.ActualFileName,D.BOID+'.jpg') PhotoPath,D.NomineeId
+FROM #TEMP_NMP D
+LEFT JOIN NOM_TEMP NP ON NP.InvestorCode=D.InvestorCode AND NP.SerialNumber=D.SL
+--LEFT JOIN NOM_SIGN NS ON NS.InvestorCode=D.InvestorCode AND NS.SerialNumber=D.SL
+) TN ON TN.NomineeId=N.Id 
+
+
+
+UPDATE N SET N.SignaturePath=Tn.SignPath
+--SELECT N.PhotographPath,TN.InvestorCode,TN.PhotoPath,TN.NomineeId
+FROM InvestorNominee N
+INNER JOIN (
+SELECT D.InvestorCode,ISNULL(NS.ActualFileName,D.BOID+'.jpg') SignPath,D.NomineeId
+FROM #TEMP_NMP D
+LEFT JOIN NOM_SIGN NS ON NS.InvestorCode=D.InvestorCode AND NS.SerialNumber=D.SL
+) TN ON TN.NomineeId=N.Id 
+
+
+
+
