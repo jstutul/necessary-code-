@@ -1,0 +1,53 @@
+USE master;
+GO
+
+DECLARE @DatabaseName NVARCHAR(256);
+DECLARE @BackupPath NVARCHAR(500);
+DECLARE @SQL NVARCHAR(MAX);
+
+SET @BackupPath = N'C:\DB Backup 09.11.2026\';
+
+DECLARE db_cursor CURSOR LOCAL FAST_FORWARD FOR
+SELECT name
+FROM sys.databases
+WHERE database_id > 4
+AND state_desc = 'ONLINE'
+AND source_database_id IS NULL
+AND name LIKE '%Website%'
+AND name LIKE '%SAR_BO%'
+AND name NOT LIKE 'UBROKER%'
+ORDER BY name;
+
+OPEN db_cursor;
+
+FETCH NEXT FROM db_cursor INTO @DatabaseName;
+
+WHILE @@FETCH_STATUS = 0
+BEGIN
+    PRINT '=====================================';
+    PRINT 'Backing up database: ' + @DatabaseName;
+
+    SET @SQL =
+        N'BACKUP DATABASE ' + QUOTENAME(@DatabaseName) +
+        N' TO DISK = N''' + @BackupPath + @DatabaseName + N'.bak''' +
+        N' WITH INIT, COMPRESSION, CHECKSUM, STATS = 10;';
+
+    BEGIN TRY
+        EXEC sp_executesql @SQL;
+
+        PRINT 'SUCCESS: ' + @DatabaseName;
+    END TRY
+    BEGIN CATCH
+        PRINT 'FAILED: ' + @DatabaseName;
+        PRINT ERROR_MESSAGE();
+    END CATCH;
+
+    FETCH NEXT FROM db_cursor INTO @DatabaseName;
+END;
+
+CLOSE db_cursor;
+DEALLOCATE db_cursor;
+
+PRINT '=====================================';
+PRINT 'ALL DATABASE BACKUP PROCESS COMPLETED';
+GO
